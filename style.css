@@ -1,0 +1,83 @@
+/*styles*/
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #050810;
+  --surface: rgba(255, 255, 255, 0.05);
+  --border: rgba(255, 255, 255, 0.1);
+  --accent: #7B8CFF;
+  --text: #E8EAFF;
+  --subtext: rgba(232, 234, 255, 0.5);
+  --font-main: 'Syne', sans-serif;
+  --font-mono: 'Space Mono', monospace;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-main);
+  height: 100vh;
+  overflow: hidden;
+}
+
+/*boot screen*/
+.boot-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at center, #0d1229 0%, #050810 70%);
+}
+
+.boot-container {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.boot-logo {
+  font-size: 48px;
+  color: var(--accent);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.boot-title {
+  font-size: 64px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.boot-sub {
+  font-family: var(--font-mono);
+  color: var(--subtext);
+  font-size: 14px;
+  letter-spacing: 0.2em;
+}
+
+.boot-btn {
+  margin-top: 24px;
+  padding: 12px 40px;
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  letter-spacing: 0.2em;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.boot-btn:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
