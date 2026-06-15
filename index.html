@@ -8,17 +8,141 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
-</head>
-<body class="boot-screen">
 
-  <div class="boot-container">
-    <div class="boot-logo">✦</div>
-    <h1 class="boot-title">astrOS</h1>
-    <p class="boot-sub">by urged-st</p>
-    <button class="boot-btn" onclick="window.location.href='desktop.html'">
-      Enter
-    </button>
+
+</head>
+<body>
+
+  <!-- el boot screen -->
+  <div id="bootScreen" class="boot-screen">
+    <div class="boot-container">
+      <div class="boot-logo">✦</div>
+      <h1 class="boot-title">astrOS</h1>
+      <p class="boot-sub">by urged-st</p>
+      <button class="boot-btn" id="enterBtn">Enter</button>
+    </div>
   </div>
+
+  <!-- desktop -->
+  <div id="desktop" class="desktop hidden">
+
+    <!-- topbar -->
+    <div class="topbar" id="topbar">
+      <span class="topbar-title">AstrOS</span>
+      <span class="topbar-clock" id="clock">--:-- --</span>
+    </div>
+
+    <!-- icons -->
+    <div class="desktop-icons" id="desktopIcons">
+      <!-- sky map icon -->
+      <div class="icon" id="skyMapIcon">
+        <div class="icon-img">🌌</div>
+        <p class="icon-label">Sky Map</p>
+      </div>
+
+      
+    </div>
+
+    <!-- taskbar (minimise targets go here) -->
+    <div class="taskbar" id="taskbar"></div>
+
+    <!-- rc context menu -->
+    <div class="context-menu" id="contextMenu">
+      <ul>
+        <li onclick="contextAction('about')">About AstrOS</li>
+        <li onclick="contextAction('github')">GitHub</li>
+        <li class="divider"></li>
+        <li onclick="contextAction('astrolab')">✦ AstroLab</li>
+      </ul>
+    </div>
+
+
+    <!-- about window -->
+    <div class="window hidden" id="aboutWindow" data-title="About AstrOS">
+      <div class="windowheader" id="aboutWindowheader">
+        <div class="closebutton" id="aboutWindowclose"></div>
+        <span class="headertext">About astrOS</span>
+        <div style="width: 16px;"></div>
+      </div>
+      <div class="window-content">
+        <p class="about-logo">✦</p>
+        <h2 class="about-title">astrOS</h2>
+        <p class="about-sub">by urged-st</p>
+        <div class="about-links">
+          <a href="ASTROLAB_URL" target="_blank">✦ AstroLab</a>
+          <a href="https://github.com/urged-st" target="_blank">GitHub</a>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- sky map window -->
+    <div class="window hidden" id="skyMapWindow" data-title="Sky Map">
+      <div class="windowheader" id="skyMapWindowheader">
+        <div class="closebutton" id="skyMapWindowclose"></div>
+        <span class="headertext">Sky Map</span>
+        <div class="minimisebutton" id="skyMapWindowmin"></div>
+      </div>
+      <div class="window-content" style="padding: 0; overflow: hidden; border-radius: 0 0 8px 8px;">
+        <div id="skymap" style="width: 600px; height: 500px;"></div>
+        <div class="skymap-status" id="skymapStatus">Locating you...</div>
+      </div>
+    </div>
+
+
+
+
+
+
+
+
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    // fullscreen launcher
+    function launchFullscreen(element) {
+      if (element.requestFullscreen) element.requestFullscreen();
+      else if (element.mozRequestFullScreen) element.mozRequestFullScreen();
+      else if (element.webkitRequestFullscreen) element.webkitRequestFullscreen();
+      else if (element.msRequestFullscreen) element.msRequestFullscreen();
+    }
+
+    // enter button — grab location first, then fullscreen, then swap
+    document.getElementById('enterBtn').addEventListener('click', () => {
+      navigator.geolocation.getCurrentPosition((pos) => {
+        window._userLocation = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+      }, () => {
+        window._userLocation = null;
+      });
+
+      launchFullscreen(document.body);
+      document.getElementById('bootScreen').classList.add('hidden');
+      document.getElementById('desktop').classList.remove('hidden');
+
+      // init wins
+      initWindow('aboutWindow');
+      document.getElementById('aboutWindowclose').addEventListener('click', () => {
+        closeWindow(document.getElementById('aboutWindow'));
+      });
+
+      initWindow('skyMapWindow');
+      document.getElementById('skyMapWindowclose').addEventListener('click', () => {
+        closeWindow(document.getElementById('skyMapWindow'));
+      });
+      document.getElementById('skyMapWindowmin').addEventListener('click', () => {
+        minimiseWindow(document.getElementById('skyMapWindow'));
+      });
+
+      // sky map icon
+      document.getElementById('skyMapIcon').addEventListener('click', () => {
+        const w = document.getElementById('skyMapWindow');
+        w.classList.remove('hidden');
+        openWindow(w);
+        initSkyMap();
+      });
+    });
+  </script>
 
 </body>
 </html>

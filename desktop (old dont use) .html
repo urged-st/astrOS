@@ -1,0 +1,41 @@
+<!-- el boot screen -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AstrOS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="desktop">
+
+  <!-- topbar -->
+  <div class="topbar" id="topbar">
+    <span class="topbar-title">AstrOS</span>
+    <span class="topbar-clock" id="clock">--:-- --</span>
+  </div>
+
+  <!-- icons -->
+  <div class="desktop-icons" id="desktopIcons">
+    <!-- apps go here next session -->
+  </div>
+
+  <!-- taskbar (minimise targets go here) -->
+  <div class="taskbar" id="taskbar"></div>
+
+  <!-- rc context menu -->
+  <div class="context-menu" id="contextMenu">
+    <ul>
+      <li onclick="contextAction('about')">About AstrOS</li>
+      <li onclick="contextAction('github')">GitHub</li>
+      <li class="divider"></li>
+      <li onclick="contextAction('astrolab')">✦ AstroLab</li>
+    </ul>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
