@@ -333,7 +333,7 @@ body {
   opacity: 0.8;
 }
 
-/* ── SKY MAP ── */
+/* skymap */
 .skymap-status {
   position: absolute;
   bottom: 8px;
@@ -400,4 +400,25 @@ body {
 #coordsToggle:hover {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+.taskbar-btn {
+  background: transparent;
+  border: none;
+  padding: 6px 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.taskbar-btn:hover {
+  background: var(--surface);
+}
+
+.tb-icon {
+  font-size: 22px;
+  line-height: 1;
 }

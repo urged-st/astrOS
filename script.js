@@ -89,7 +89,7 @@ function addToTaskbar(el) {
   const btn = document.createElement('button');
   btn.className = 'taskbar-btn';
   btn.id = 'tb-' + el.id;
-  btn.textContent = el.dataset.title || el.id;
+  btn.innerHTML = `<span class="tb-icon">${el.dataset.icon || '✦'}</span>`;
   btn.onclick = () => {
     openWindow(el);
     removeFromTaskbar(el.id);

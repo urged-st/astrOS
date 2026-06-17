@@ -25,7 +25,7 @@
 
   <!-- desktop -->
   <div id="desktop" class="desktop hidden">
-
+    
     <!-- topbar -->
     <div class="topbar" id="topbar">
       <span class="topbar-title">AstrOS</span>
@@ -64,7 +64,7 @@
 
 
     <!-- about window -->
-    <div class="window hidden" id="aboutWindow" data-title="About AstrOS">
+    <div class="window hidden" id="aboutWindow" data-title="About AstrOS" data-icon="✦">
       <div class="windowheader" id="aboutWindowheader">
         <div class="closebutton" id="aboutWindowclose"></div>
         <span class="headertext">About astrOS</span>
@@ -83,7 +83,7 @@
 
 
     <!-- sky map window -->
-    <div class="window hidden" id="skyMapWindow" data-title="Sky Map">
+    <div class="window hidden" id="skyMapWindow" data-title="Sky Map" data-icon="🌌">
       <div class="windowheader" id="skyMapWindowheader">
         <div class="closebutton" id="skyMapWindowclose"></div>
         <span class="headertext">Sky Map</span>
@@ -99,7 +99,7 @@
     </div>
 
     <!-- notepad window -->
-    <div class="window hidden" id="notepadWindow" data-title="Mission Log">
+    <div class="window hidden" id="notepadWindow" data-title="Mission Log" data-icon="📓">
       <div class="windowheader" id="notepadWindowheader">
         <div class="closebutton" id="notepadWindowclose"></div>
         <span class="headertext">Mission Log</span>
@@ -129,7 +129,7 @@
       else if (element.msRequestFullscreen) element.msRequestFullscreen();
     }
 
-    // enter button — grab location first, then fullscreen, then swap
+    // enter button 
     document.getElementById('enterBtn').addEventListener('click', () => {
       navigator.geolocation.getCurrentPosition((pos) => {
         window._userLocation = { lat: pos.coords.latitude, lon: pos.coords.longitude };
