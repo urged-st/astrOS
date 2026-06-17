@@ -343,3 +343,61 @@ body {
   color: var(--subtext);
   letter-spacing: 0.08em;
 }
+
+
+/* minimise animation */
+.window.minimising {
+  transition: transform 0.25s ease-in, opacity 0.25s ease-in;
+  transform: scale(0.1) translateY(300px);
+  opacity: 0;
+}
+
+/* notepad */
+#notepadText {
+  width: 320px;
+  height: 280px;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 16px;
+}
+
+#notepadText::placeholder {
+  color: var(--subtext);
+}
+
+
+/* sky map status bar */
+.skymap-status {
+  position: absolute;
+  bottom: 8px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--subtext);
+  letter-spacing: 0.08em;
+}
+
+#coordsToggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--subtext);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 8px;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+}
+
+#coordsToggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}

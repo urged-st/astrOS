@@ -73,8 +73,14 @@ function closeWindow(el) {
 }
 
 function minimiseWindow(el) {
-  el.style.display = 'none';
-  addToTaskbar(el);
+  el.classList.add('minimising');
+  setTimeout(() => {
+    el.style.display = 'none';
+    el.classList.remove('minimising');
+    el.style.transform = '';
+    el.style.opacity = '';
+    addToTaskbar(el);
+  }, 250);
 }
 
 // tb
@@ -108,13 +114,27 @@ function initWindow(id) {
 }
 
 
-function initSkyMap() {
-  // read comments cause i dont know what im doing
 
+function initSkyMap() {
+  // read comments pls i barely got through this
   const status = document.getElementById('skymapStatus');
+  const toggle = document.getElementById('coordsToggle');
   const loc = window._userLocation;
-  if (!loc) { status.textContent = 'location unavailable'; return; }
-  status.textContent = `${loc.lat.toFixed(2)}°, ${loc.lon.toFixed(2)}°`;
+
+  // rip no location
+  if (!loc) { status.textContent = 'location unavailable'; toggle.style.display = 'none'; return; }
+
+  // coords hidden by default — privacy thing in case ppl screenshot
+  let shown = false;
+  status.textContent = 'coords hidden';
+
+  toggle.onclick = () => {
+    shown = !shown;
+    status.textContent = shown ? `${loc.lat.toFixed(2)}°, ${loc.lon.toFixed(2)}°` : 'coords hidden';
+    toggle.textContent = shown ? 'hide' : 'show';
+  };
+
+  // ... rest of the canvas/star drawing logic stays the same
 
   const container = document.getElementById('skymap');
   container.innerHTML = '';
@@ -217,104 +237,116 @@ function initSkyMap() {
     return { x: 300 + r * Math.cos(theta), y: 250 + r * Math.sin(theta) };
   }
 
-  function draw() {
-    ctx.clearRect(0, 0, 600, 500);
+function draw() {
+  ctx.clearRect(0, 0, 600, 500);
 
-    // dark sky background
-    const bg = ctx.createRadialGradient(300, 250, 0, 300, 250, 300);
-    bg.addColorStop(0, '#0d1229');
-    bg.addColorStop(1, '#050810');
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, 600, 500);
+  // dark sky background
+  const bg = ctx.createRadialGradient(300, 250, 0, 300, 250, 300);
+  bg.addColorStop(0, '#0d1229');
+  bg.addColorStop(1, '#050810');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, 600, 500);
 
-    ctx.save();
+  ctx.save();
 
-    // clip everything to a circle so stars dont spill outside the horizon ring
+  // clip everything to a circle so stars dont spill outside the horizon ring
+  ctx.beginPath();
+  ctx.arc(300, 250, 240, 0, Math.PI * 2);
+  ctx.clip();
+
+  // rotate the whole sky around the centre — this is what dragging does
+  ctx.translate(300, 250);
+  ctx.rotate(rotation);
+  ctx.translate(-300, -250);
+
+  // milky way — just a soft glow blob, not scientifically accurate but looks nice
+  const mw = ctx.createRadialGradient(320, 200, 0, 320, 200, 160);
+  mw.addColorStop(0, 'rgba(26,32,68,0.7)');
+  mw.addColorStop(1, 'rgba(26,32,68,0)');
+  ctx.fillStyle = mw;
+  ctx.fillRect(0, 0, 600, 500);
+
+  // tiny background stars — seeded so they dont flicker every redraw
+  const seed = Math.floor(2440587.5 + Date.now() / 86400000);
+  for (let i = 0; i < 300; i++) {
+    const sx = Math.abs((seed * 1234 + i * 5678) % 600);
+    const sy = Math.abs((seed * 8765 + i * 4321) % 500);
+    const dx = sx - 300, dy = sy - 250;
+    if (dx * dx + dy * dy > 240 * 240) continue; // skip if outside circle
     ctx.beginPath();
-    ctx.arc(300, 250, 240, 0, Math.PI * 2);
-    ctx.clip();
+    ctx.arc(sx, sy, (i % 3) * 0.3 + 0.2, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(200,210,255,${(i % 5) * 0.08 + 0.1})`;
+    ctx.fill();
+  }
 
-    // rotate the whole sky around the centre — this is what dragging does
-    ctx.translate(300, 250);
-    ctx.rotate(rotation);
-    ctx.translate(-300, -250);
+  // the actual named stars — dots only here, labels drawn later unrotated
+  const lst = getLST();
+  const labelPositions = []; // stash label info to draw after we un-rotate
 
-    // milky way — just a soft glow blob, not scientifically accurate but looks nice
-    const mw = ctx.createRadialGradient(320, 200, 0, 320, 200, 160);
-    mw.addColorStop(0, 'rgba(26,32,68,0.7)');
-    mw.addColorStop(1, 'rgba(26,32,68,0)');
-    ctx.fillStyle = mw;
-    ctx.fillRect(0, 0, 600, 500);
+  stars.forEach(([ra, dec, mag, name]) => {
+    const { alt, az } = toAltAz(ra, dec, lst);
+    if (alt < 0) return; // below horizon, skip it
 
-    // tiny background stars — seeded so they dont flicker every redraw
-    const seed = Math.floor(2440587.5 + Date.now() / 86400000);
-    for (let i = 0; i < 300; i++) {
-      const sx = Math.abs((seed * 1234 + i * 5678) % 600);
-      const sy = Math.abs((seed * 8765 + i * 4321) % 500);
-      const dx = sx - 300, dy = sy - 250;
-      if (dx * dx + dy * dy > 240 * 240) continue; // skip if outside circle
+    const { x, y } = project(alt, az);
+    const size = Math.max(0.8, 3.5 - mag * 0.8); // brighter = bigger dot
+    const brightness = Math.min(1, 0.4 + (6 - mag) * 0.12);
+
+    // glow effect for the bright ones
+    if (mag < 1.5) {
+      const glow = ctx.createRadialGradient(x, y, 0, x, y, size * 5);
+      glow.addColorStop(0, 'rgba(180,200,255,0.35)');
+      glow.addColorStop(1, 'rgba(180,200,255,0)');
+      ctx.fillStyle = glow;
       ctx.beginPath();
-      ctx.arc(sx, sy, (i % 3) * 0.3 + 0.2, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(200,210,255,${(i % 5) * 0.08 + 0.1})`;
+      ctx.arc(x, y, size * 5, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // the actual named stars
-    const lst = getLST();
-    stars.forEach(([ra, dec, mag, name]) => {
-      const { alt, az } = toAltAz(ra, dec, lst);
-      if (alt < 0) return; // below horizon, skip it
-
-      const { x, y } = project(alt, az);
-      const size = Math.max(0.8, 3.5 - mag * 0.8); // brighter = bigger dot
-      const brightness = Math.min(1, 0.4 + (6 - mag) * 0.12);
-
-      // glow effect for the bright ones
-      if (mag < 1.5) {
-        const glow = ctx.createRadialGradient(x, y, 0, x, y, size * 5);
-        glow.addColorStop(0, 'rgba(180,200,255,0.35)');
-        glow.addColorStop(1, 'rgba(180,200,255,0)');
-        ctx.fillStyle = glow;
-        ctx.beginPath();
-        ctx.arc(x, y, size * 5, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // the dot
-      ctx.beginPath();
-      ctx.arc(x, y, size, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(220,225,255,${brightness})`;
-      ctx.fill();
-
-      // name label just to the right of the star
-      ctx.font = '10px Space Mono, monospace';
-      ctx.fillStyle = 'rgba(180,190,255,0.75)';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(name, x + size + 4, y);
-    });
-
-    // cardinal directions — these rotate with the sky which is correct
-    ctx.font = '11px Space Mono, monospace';
-    ctx.fillStyle = '#7B8CFF';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    [['N', 0], ['E', 90], ['S', 180], ['W', 270]].forEach(([label, az]) => {
-      const theta = (az - 90) * Math.PI / 180;
-      ctx.fillText(label, 300 + 228 * Math.cos(theta), 250 + 228 * Math.sin(theta));
-    });
-
-    ctx.restore(); // undo the clip + rotation so the horizon ring draws clean
-    
-    // horizon ring — drawn outside the rotation so it stays still
+    // the dot
     ctx.beginPath();
-    ctx.arc(300, 250, 240, 0, Math.PI * 2);
-    ctx.strokeStyle = '#7B8CFF';
-    ctx.lineWidth = 1.5;
-    ctx.globalAlpha = 0.5;
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-  }
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(220,225,255,${brightness})`;
+    ctx.fill();
+
+    // stash the screen position (post-rotation) for the label, drawn later unrotated
+    labelPositions.push({ x, y, size, name });
+  });
+
+  ctx.restore(); // undo the clip + rotation — text drawn from here on stays upright
+
+  // star name labels — drawn after restore so they never tilt with the sky
+  labelPositions.forEach(({ x, y, size, name }) => {
+    // rotate just this point around centre to find where it landed on screen
+    const dx = x - 300, dy = y - 250;
+    const sx = 300 + dx * Math.cos(rotation) - dy * Math.sin(rotation);
+    const sy = 250 + dx * Math.sin(rotation) + dy * Math.cos(rotation);
+
+    ctx.font = '10px Space Mono, monospace';
+    ctx.fillStyle = 'rgba(180,190,255,0.75)';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(name, sx + size + 4, sy);
+  });
+
+  // cardinal directions — fixed orientation now, always upright, but rotate position with sky
+  ctx.font = '11px Space Mono, monospace';
+  ctx.fillStyle = '#7B8CFF';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  [['N', 0], ['E', 90], ['S', 180], ['W', 270]].forEach(([label, az]) => {
+    const theta = (az - 90) * Math.PI / 180 + rotation;
+    ctx.fillText(label, 300 + 228 * Math.cos(theta), 250 + 228 * Math.sin(theta));
+  });
+
+  // horizon ring — drawn outside the rotation so it stays still
+  ctx.beginPath();
+  ctx.arc(300, 250, 240, 0, Math.PI * 2);
+  ctx.strokeStyle = '#7B8CFF';
+  ctx.lineWidth = 1.5;
+  ctx.globalAlpha = 0.5;
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+}
 
   draw(); // initial render
 }

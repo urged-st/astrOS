@@ -40,6 +40,12 @@
         <p class="icon-label">Sky Map</p>
       </div>
 
+      <!-- notepad icon -->
+      <div class="icon" id="notepadIcon">
+        <div class="icon-img">📓</div>
+        <p class="icon-label">Mission Log</p>
+      </div>
+
       
     </div>
 
@@ -85,7 +91,22 @@
       </div>
       <div class="window-content" style="padding: 0; overflow: hidden; border-radius: 0 0 8px 8px;">
         <div id="skymap" style="width: 600px; height: 500px;"></div>
-        <div class="skymap-status" id="skymapStatus">Locating you...</div>
+        <div class="skymap-status">
+          <span id="skymapStatus">coords hidden</span>
+          <button id="coordsToggle">show</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- notepad window -->
+    <div class="window hidden" id="notepadWindow" data-title="Mission Log">
+      <div class="windowheader" id="notepadWindowheader">
+        <div class="closebutton" id="notepadWindowclose"></div>
+        <span class="headertext">Mission Log</span>
+        <div class="minimisebutton" id="notepadWindowmin"></div>
+      </div>
+      <div class="window-content" style="padding: 0;">
+        <textarea id="notepadText" placeholder="log your thoughts..."></textarea>
       </div>
     </div>
 
@@ -116,6 +137,11 @@
         window._userLocation = null;
       });
 
+      // re-enter fullscreen on click if not already fullscreen
+      document.addEventListener('click', () => {
+        if (!document.fullscreenElement) launchFullscreen(document.body);
+      });
+
       launchFullscreen(document.body);
       document.getElementById('bootScreen').classList.add('hidden');
       document.getElementById('desktop').classList.remove('hidden');
@@ -141,6 +167,25 @@
         openWindow(w);
         initSkyMap();
       });
+
+
+      // notepad window
+      initWindow('notepadWindow');
+      document.getElementById('notepadWindowclose').addEventListener('click', () => {
+        closeWindow(document.getElementById('notepadWindow'));
+      });
+      document.getElementById('notepadWindowmin').addEventListener('click', () => {
+        minimiseWindow(document.getElementById('notepadWindow'));
+      });
+
+      // notepad icon
+      document.getElementById('notepadIcon').addEventListener('click', () => {
+        const w = document.getElementById('notepadWindow');
+        w.classList.remove('hidden');
+        openWindow(w);
+      });
+
+
     });
   </script>
 
