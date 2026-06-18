@@ -120,74 +120,96 @@
   </div>
 
   <script src="script.js"></script>
-  <script>
-    // fullscreen launcher
-    function launchFullscreen(element) {
-      if (element.requestFullscreen) element.requestFullscreen();
-      else if (element.mozRequestFullScreen) element.mozRequestFullScreen();
-      else if (element.webkitRequestFullscreen) element.webkitRequestFullscreen();
-      else if (element.msRequestFullscreen) element.msRequestFullscreen();
-    }
+<script>
+  // fullscreen launcher
+  function launchFullscreen(element) {
+    if (element.requestFullscreen) element.requestFullscreen();
+    else if (element.mozRequestFullScreen) element.mozRequestFullScreen();
+    else if (element.webkitRequestFullscreen) element.webkitRequestFullscreen();
+    else if (element.msRequestFullscreen) element.msRequestFullscreen();
+  }
 
-    // enter button 
-    document.getElementById('enterBtn').addEventListener('click', () => {
-      navigator.geolocation.getCurrentPosition((pos) => {
-        window._userLocation = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-      }, () => {
-        window._userLocation = null;
-      });
-
-      // re-enter fullscreen on click if not already fullscreen
-      document.addEventListener('click', () => {
-        if (!document.fullscreenElement) launchFullscreen(document.body);
-      });
-
-      launchFullscreen(document.body);
-      document.getElementById('bootScreen').classList.add('hidden');
-      document.getElementById('desktop').classList.remove('hidden');
-
-      // init wins
-      initWindow('aboutWindow');
-      document.getElementById('aboutWindowclose').addEventListener('click', () => {
-        closeWindow(document.getElementById('aboutWindow'));
-      });
-
-      initWindow('skyMapWindow');
-      document.getElementById('skyMapWindowclose').addEventListener('click', () => {
-        closeWindow(document.getElementById('skyMapWindow'));
-      });
-      document.getElementById('skyMapWindowmin').addEventListener('click', () => {
-        minimiseWindow(document.getElementById('skyMapWindow'));
-      });
-
-      // sky map icon
-      document.getElementById('skyMapIcon').addEventListener('click', () => {
-        const w = document.getElementById('skyMapWindow');
-        w.classList.remove('hidden');
-        openWindow(w);
-        initSkyMap();
-      });
-
-
-      // notepad window
-      initWindow('notepadWindow');
-      document.getElementById('notepadWindowclose').addEventListener('click', () => {
-        closeWindow(document.getElementById('notepadWindow'));
-      });
-      document.getElementById('notepadWindowmin').addEventListener('click', () => {
-        minimiseWindow(document.getElementById('notepadWindow'));
-      });
-
-      // notepad icon
-      document.getElementById('notepadIcon').addEventListener('click', () => {
-        const w = document.getElementById('notepadWindow');
-        w.classList.remove('hidden');
-        openWindow(w);
-      });
-
-
+  // enter button
+  document.getElementById('enterBtn').addEventListener('click', () => {
+    navigator.geolocation.getCurrentPosition((pos) => {
+      window._userLocation = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+    }, () => {
+      window._userLocation = null;
+    }, {
+      enableHighAccuracy: false, // faster, low-accuracy fix (fine since we round anyway)
+      timeout: 5000,             // give up after 5s instead of hanging
+      maximumAge: 60000          // accept a cached position up to 1 min old
     });
-  </script>
+
+    launchFullscreen(document.body);
+    document.getElementById('bootScreen').classList.add('hidden');
+    document.getElementById('desktop').classList.remove('hidden');
+
+    // init wins
+    initWindow('aboutWindow');
+    document.getElementById('aboutWindowclose').addEventListener('click', () => {
+      closeWindow(document.getElementById('aboutWindow'));
+    });
+
+    initWindow('skyMapWindow');
+    document.getElementById('skyMapWindowclose').addEventListener('click', () => {
+      closeWindow(document.getElementById('skyMapWindow'));
+    });
+    document.getElementById('skyMapWindowmin').addEventListener('click', () => {
+      minimiseWindow(document.getElementById('skyMapWindow'));
+    });
+
+    
+    // sky map icon
+    document.getElementById('skyMapIcon').addEventListener('click', () => {
+      const w = document.getElementById('skyMapWindow');
+      w.classList.remove('hidden');
+      openWindow(w);
+
+      if (window._userLocation) {
+        initSkyMap();
+      } else {
+        // location not ready yet, try again shortly
+        const status = document.getElementById('skymapStatus');
+        status.textContent = 'locating...';
+        let tries = 0;
+
+        const wait = setInterval(() => {
+          tries++;
+          if (window._userLocation !== undefined) {
+            clearInterval(wait);
+            initSkyMap();
+          } else if (tries >= 10) {
+            // gave up after ~3s, ask for a reload
+            clearInterval(wait);
+            status.textContent = 'reload site!';
+          }
+        }, 300);
+      }
+    });
+
+    // notepad window
+    initWindow('notepadWindow');
+    document.getElementById('notepadWindowclose').addEventListener('click', () => {
+      closeWindow(document.getElementById('notepadWindow'));
+    });
+    document.getElementById('notepadWindowmin').addEventListener('click', () => {
+      minimiseWindow(document.getElementById('notepadWindow'));
+    });
+
+    // notepad icon
+    document.getElementById('notepadIcon').addEventListener('click', () => {
+      const w = document.getElementById('notepadWindow');
+      w.classList.remove('hidden');
+      openWindow(w);
+    });
+  });
+
+  // re-enter fullscreen on click if not already fullscreen
+  document.addEventListener('click', () => {
+    if (!document.fullscreenElement) launchFullscreen(document.body);
+  });
+</script>
 
 </body>
 </html>
