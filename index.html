@@ -46,11 +46,26 @@
         <p class="icon-label">Mission Log</p>
       </div>
 
+      <!-- wallpaper icon -->
+      <div class="icon" id="wallpaperIcon">
+        <div class="icon-img">🖼️</div>
+        <p class="icon-label">Wallpaper</p>
+      </div>
+
+      <!-- ngc catalogue icon -->
+      <div class="icon" id="ngcIcon">
+        <div class="icon-img">🔭</div>
+        <p class="icon-label">NGC Catalogue</p>
+      </div>
+
       
     </div>
 
     <!-- taskbar (minimise targets go here) -->
     <div class="taskbar" id="taskbar"></div>
+
+    <!-- notification container -->
+    <div class="notification-container" id="notificationContainer"></div>
 
     <!-- rc context menu -->
     <div class="context-menu" id="contextMenu">
@@ -110,12 +125,69 @@
       </div>
     </div>
 
+    <!-- wallpaper window -->
+    <div class="window hidden" id="wallpaperWindow" data-title="Wallpaper" data-icon="🖼️">
+      <div class="windowheader" id="wallpaperWindowheader">
+        <div class="closebutton" id="wallpaperWindowclose"></div>
+        <span class="headertext">Wallpaper</span>
+        <div style="width: 16px;"></div>
+      </div>
+      <div class="window-content wallpaper-content">
+        <p class="wallpaper-hint">choose a sky</p>
+        <div class="wallpaper-grid" id="wallpaperGrid">
+          <div class="wallpaper-swatch" data-bg="default">
+            <div class="swatch-fill swatch-default"></div>
+            <span>default</span>
+          </div>
+          <div class="wallpaper-swatch" data-bg="nebula">
+            <div class="swatch-fill swatch-nebula"></div>
+            <span>nebula</span>
+          </div>
+          <div class="wallpaper-swatch" data-bg="deepblue">
+            <div class="swatch-fill swatch-deepblue"></div>
+            <span>deep blue</span>
+          </div>
+          <div class="wallpaper-swatch" data-bg="solarflare">
+            <div class="swatch-fill swatch-solarflare"></div>
+            <span>solar flare</span>
+          </div>
+          <div class="wallpaper-swatch" data-bg="aurora">
+            <div class="swatch-fill swatch-aurora"></div>
+            <span>aurora</span>
+          </div>
+          <div class="wallpaper-swatch" data-bg="mono">
+            <div class="swatch-fill swatch-mono"></div>
+            <span>mono</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
-
-
-
-
-
+    <!-- ngc catalogue window -->
+    <div class="window hidden" id="ngcWindow" data-title="NGC Catalogue" data-icon="🔭">
+      <div class="windowheader" id="ngcWindowheader">
+        <div class="closebutton" id="ngcWindowclose"></div>
+        <span class="headertext">NGC Catalogue</span>
+        <div class="minimisebutton" id="ngcWindowmin"></div>
+      </div>
+      <div class="window-content ngc-content">
+        <div class="ngc-controls">
+          <input type="text" id="ngcSearch" placeholder="search name or id..." />
+          <select id="ngcFilter">
+            <option value="all">all types</option>
+            <option value="galaxy">galaxies</option>
+            <option value="nebula">nebulae</option>
+            <option value="cluster">clusters</option>
+          </select>
+        </div>
+        <div class="ngc-body">
+          <ul class="ngc-list" id="ngcList"></ul>
+          <div class="ngc-detail" id="ngcDetail">
+            <p class="ngc-detail-empty">select an object to view details</p>
+          </div>
+        </div>
+      </div>
+    </div>
 
   </div>
 
@@ -136,7 +208,7 @@
     }, () => {
       window._userLocation = null;
     }, {
-      enableHighAccuracy: false, // faster, low-accuracy fix (fine since we round anyway)
+      enableHighAccuracy: false, // faster low accuracy fix, fine since we round anyway
       timeout: 5000,             // give up after 5s instead of hanging
       maximumAge: 60000          // accept a cached position up to 1 min old
     });
@@ -203,6 +275,40 @@
       w.classList.remove('hidden');
       openWindow(w);
     });
+
+    // wallpaper window
+    initWindow('wallpaperWindow');
+    document.getElementById('wallpaperWindowclose').addEventListener('click', () => {
+      closeWindow(document.getElementById('wallpaperWindow'));
+    });
+
+    // wallpaper icon
+    document.getElementById('wallpaperIcon').addEventListener('click', () => {
+      const w = document.getElementById('wallpaperWindow');
+      w.classList.remove('hidden');
+      openWindow(w);
+      markActiveWallpaperSwatch();
+    });
+
+    // ngc window
+    initWindow('ngcWindow');
+    document.getElementById('ngcWindowclose').addEventListener('click', () => {
+      closeWindow(document.getElementById('ngcWindow'));
+    });
+    document.getElementById('ngcWindowmin').addEventListener('click', () => {
+      minimiseWindow(document.getElementById('ngcWindow'));
+    });
+
+    // ngc icon
+    document.getElementById('ngcIcon').addEventListener('click', () => {
+      const w = document.getElementById('ngcWindow');
+      w.classList.remove('hidden');
+      openWindow(w);
+      initNgcBrowser();
+    });
+
+    // kick off did you know pings once the desktop is up
+    scheduleNotifications();
   });
 
   // re-enter fullscreen on click if not already fullscreen
@@ -213,3 +319,33 @@
 
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
