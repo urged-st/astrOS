@@ -785,3 +785,347 @@ function initNgcBrowser() {
 
   loadNgcResults('');
 }
+
+// apod viewer
+// pulls NASA's Astronomy Picture Of The Day, cached per calendar day so
+// reopening the window doesn't burn another API call
+
+const APOD_API = 'https://api.nasa.gov/planetary/apod';
+const APOD_KEY = 'DEMO_KEY'; // swap for a real key later, DEMO_KEY is rate limited
+const APOD_CACHE_KEY = 'astros_apod_cache';
+
+let apodInitialised = false;
+
+function todayString() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function getCachedApod() {
+  try {
+    const raw = localStorage.getItem(APOD_CACHE_KEY);
+    if (!raw) return null;
+    const cached = JSON.parse(raw);
+    return cached.date === todayString() ? cached.data : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function setCachedApod(data) {
+  try {
+    localStorage.setItem(APOD_CACHE_KEY, JSON.stringify({ date: todayString(), data }));
+  } catch (e) { /* storage unavailable, just skip caching */ }
+}
+
+function renderApod(data) {
+  const content = document.getElementById('apodContent');
+  const isImage = data.media_type === 'image';
+
+  content.innerHTML = `
+    ${isImage
+      ? `<img class="apod-image" src="${data.url}" alt="${data.title}" />`
+      : `<div class="apod-video-note">today's APOD is a video, view it <a href="${data.url}" target="_blank">here</a></div>`}
+    <div class="apod-info">
+      <div class="apod-title">${data.title}</div>
+      <div class="apod-date">${data.date}</div>
+      <button class="apod-toggle" id="apodToggle">show explanation</button>
+      <p class="apod-explanation hidden" id="apodExplanation">${data.explanation}</p>
+    </div>
+  `;
+
+  document.getElementById('apodToggle').addEventListener('click', () => {
+    const exp = document.getElementById('apodExplanation');
+    const btn = document.getElementById('apodToggle');
+    exp.classList.toggle('hidden');
+    btn.textContent = exp.classList.contains('hidden') ? 'show explanation' : 'hide explanation';
+  });
+}
+
+function renderApodError() {
+  const content = document.getElementById('apodContent');
+  content.innerHTML = `<p class="apod-loading">couldn't load today's picture, try again later</p>`;
+}
+
+async function fetchApod() {
+  const cached = getCachedApod();
+  if (cached) { renderApod(cached); return; }
+
+  try {
+    const res = await fetch(`${APOD_API}?api_key=${APOD_KEY}`);
+    if (!res.ok) throw new Error(`API returned ${res.status}`);
+    const data = await res.json();
+    setCachedApod(data);
+    renderApod(data);
+  } catch (err) {
+    console.warn('APOD fetch failed:', err);
+    renderApodError();
+  }
+}
+
+function initApodViewer() {
+  if (apodInitialised) return;
+  apodInitialised = true;
+  fetchApod();
+}
+
+// iss tracker
+// pulls live ISS position from wheretheiss.at (public API, no key needed, CORS-open)
+// docs: https://wheretheiss.at/w/developer
+
+const ISS_API = 'https://api.wheretheiss.at/v1/satellites/25544';
+const ISS_POLL_MS = 5000;
+const ISS_TRAIL_LENGTH = 20; // how many past fixes to keep for the fading trail
+const ISS_INCLINATION_DEG = 51.6; // orbital inclination, sets how far north/south the ground track swings
+const ISS_PERIOD_MIN = 92.68; // one full orbit
+const ISS_EARTH_ROT_DEG_PER_MIN = 360 / 1436.1; // earth spins under the orbit, sidereal day in minutes
+
+// a handful of well known cities, purely so the grid has recognisable anchor points,
+// not meant to be exhaustive, just enough to eyeball roughly where the ISS is
+const ISS_REFERENCE_CITIES = [
+  { name: 'London', lat: 51.5, lon: -0.1 },
+  { name: 'New York', lat: 40.7, lon: -74.0 },
+  { name: 'Tokyo', lat: 35.7, lon: 139.7 },
+  { name: 'Sydney', lat: -33.9, lon: 151.2 },
+  { name: 'Cape Town', lat: -33.9, lon: 18.4 },
+  { name: 'Rio de Janeiro', lat: -22.9, lon: -43.2 },
+  { name: 'Mumbai', lat: 19.1, lon: 72.9 },
+  { name: 'Cairo', lat: 30.0, lon: 31.2 },
+];
+
+let issInterval = null;
+let issTrail = [];
+
+function initIssTracker() {
+  if (issInterval) return; // already running, don't stack intervals
+
+  drawIssMap(null);
+  fetchIssPosition();
+  issInterval = setInterval(fetchIssPosition, ISS_POLL_MS);
+}
+
+function stopIssTracker() {
+  if (issInterval) {
+    clearInterval(issInterval);
+    issInterval = null;
+  }
+  issTrail = [];
+}
+
+async function fetchIssPosition() {
+  try {
+    const res = await fetch(ISS_API);
+    if (!res.ok) throw new Error(`API returned ${res.status}`);
+    const data = await res.json();
+
+    const lat = data.latitude;
+    const lon = data.longitude;
+
+    document.getElementById('issLat').textContent = lat.toFixed(2);
+    document.getElementById('issLon').textContent = lon.toFixed(2);
+    document.getElementById('issAlt').textContent = data.altitude.toFixed(1);
+    document.getElementById('issVel').textContent = data.velocity.toFixed(0);
+
+    issTrail.push({ lat, lon });
+    if (issTrail.length > ISS_TRAIL_LENGTH) issTrail.shift(); // keep the trail short
+
+    drawIssMap({ lat, lon });
+    updateIssDistance(lat, lon);
+  } catch (err) {
+    // api down or offline, just leave last known values on screen
+    console.warn('ISS fetch failed:', err);
+  }
+}
+
+function updateIssDistance(lat, lon) {
+  const distEl = document.getElementById('issDist');
+  const overheadEl = document.getElementById('issOverhead');
+
+  if (!window._userLocation) {
+    distEl.textContent = 'unknown';
+    overheadEl.textContent = '';
+    return;
+  }
+
+  const d = haversineKm(window._userLocation.lat, window._userLocation.lon, lat, lon);
+  distEl.textContent = d.toFixed(0);
+
+  // iss orbits at ~400km, this is a rough visibility radius not a proper elevation check
+  overheadEl.textContent = d < 2000 ? '✦ nearby!' : '';
+}
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371; // earth radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) ** 2;
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// works out the sine-wave ground track for one full orbit centred on the current fix.
+// derives the argument of latitude (u) from the current lat, using two-line-element style
+// geometry: sin(lat) = sin(i) * sin(u). ascending vs descending picks which branch of u to use.
+function computeIssGroundTrack(lat, lon, ascending) {
+  const i = ISS_INCLINATION_DEG * Math.PI / 180;
+  const ratio = Math.max(-1, Math.min(1, Math.sin(lat * Math.PI / 180) / Math.sin(i)));
+  let u0 = Math.asin(ratio);
+  if (!ascending) u0 = Math.PI - u0; // other half of the orbit, lat decreasing as u increases
+
+  const lonNode = lon * Math.PI / 180 - Math.atan2(Math.cos(i) * Math.sin(u0), Math.cos(u0));
+
+  const points = [];
+  const stepMin = 2;
+  const halfPeriod = ISS_PERIOD_MIN / 2;
+
+  for (let t = -halfPeriod; t <= halfPeriod; t += stepMin) {
+    const u = u0 + (t / ISS_PERIOD_MIN) * 2 * Math.PI;
+    const latT = Math.asin(Math.sin(i) * Math.sin(u)) * 180 / Math.PI;
+
+    let lonT = (lonNode + Math.atan2(Math.cos(i) * Math.sin(u), Math.cos(u))) * 180 / Math.PI;
+    lonT -= ISS_EARTH_ROT_DEG_PER_MIN * t; // ground track drifts west as earth spins underneath
+    lonT = ((lonT + 180) % 360 + 360) % 360 - 180; // wrap back into -180..180
+
+    points.push({ lat: latT, lon: lonT });
+  }
+
+  return points;
+}
+
+// converts lat/lon straight to canvas xy, plain equirectangular, no fancy projection needed
+function issProject(lat, lon, w, h) {
+  const x = ((lon + 180) / 360) * w;
+  const y = ((90 - lat) / 180) * h;
+  return { x, y };
+}
+
+function drawIssMap(pos) {
+  const canvas = document.getElementById('issCanvas');
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#05070d';
+  ctx.fillRect(0, 0, w, h);
+
+  // lat/lon gridlines every 30 degrees
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+
+  for (let lon = -180; lon <= 180; lon += 30) {
+    const x = ((lon + 180) / 360) * w;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, h);
+    ctx.stroke();
+  }
+
+  for (let lat = -90; lat <= 90; lat += 30) {
+    const y = ((90 - lat) / 180) * h;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+  }
+
+  // equator w prime meridian, drawn slightly brighter than the rest of the grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+  ctx.beginPath();
+  ctx.moveTo(0, h / 2);
+  ctx.lineTo(w, h / 2);
+  ctx.moveTo(w / 2, 0);
+  ctx.lineTo(w / 2, h);
+  ctx.stroke();
+
+  // lat/lon axis labels, small and dim, just enough to read coordinates off the grid
+  ctx.font = '9px Space Mono, monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  for (let lon = -180; lon <= 180; lon += 60) {
+    const x = ((lon + 180) / 360) * w;
+    ctx.fillText(`${lon}°`, x, h - 12);
+  }
+
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  for (let lat = -60; lat <= 60; lat += 30) {
+    const y = ((90 - lat) / 180) * h;
+    ctx.fillText(`${lat}°`, 4, y);
+  }
+
+  // reference cities, just anchor points so the grid actually means something at a glance
+  ISS_REFERENCE_CITIES.forEach((city) => {
+    const { x, y } = issProject(city.lat, city.lon, w, h);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.beginPath();
+    ctx.arc(x, y, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.font = '9px Space Mono, monospace';
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(city.name, x + 5, y);
+  });
+
+  // dashed line from you to the ISS, makes the relationship between the two dots obvious
+  if (pos && window._userLocation) {
+    const you = issProject(window._userLocation.lat, window._userLocation.lon, w, h);
+    const iss = issProject(pos.lat, pos.lon, w, h);
+
+    ctx.strokeStyle = 'rgba(90, 184, 255, 0.35)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(you.x, you.y);
+    ctx.lineTo(iss.x, iss.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // trail, oldest to newest, fading in as it gets more recent
+  issTrail.forEach((p, i) => {
+    const { x, y } = issProject(p.lat, p.lon, w, h);
+    const alpha = (i + 1) / issTrail.length;
+
+    ctx.fillStyle = `rgba(255, 90, 90, ${alpha * 0.5})`;
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // current position, drawn last so it sits on top of the trail
+  if (pos) {
+    const { x, y } = issProject(pos.lat, pos.lon, w, h);
+
+    ctx.fillStyle = '#ff5a5a';
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = '#ff5a5a';
+    ctx.beginPath();
+    ctx.arc(x, y, 9, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // user location marker, drawn as a small triangle so it's never confused with the ISS dot
+  if (window._userLocation) {
+    const { x: ux, y: uy } = issProject(window._userLocation.lat, window._userLocation.lon, w, h);
+
+    ctx.fillStyle = '#5ab8ff';
+    ctx.beginPath();
+    ctx.moveTo(ux, uy - 6);
+    ctx.lineTo(ux - 5, uy + 5);
+    ctx.lineTo(ux + 5, uy + 5);
+    ctx.closePath();
+    ctx.fill();
+  }
+}

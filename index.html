@@ -58,7 +58,18 @@
         <p class="icon-label">NGC Catalogue</p>
       </div>
 
-      
+      <!-- apod icon -->
+      <div class="icon" id="apodIcon">
+        <div class="icon-img">📸</div>
+        <p class="icon-label">APOD</p>
+      </div>
+
+      <!-- iss tracker icon -->
+      <div class="icon" id="issIcon">
+        <div class="icon-img">🛰️</div>
+        <p class="icon-label">ISS Tracker</p>
+      </div>
+
     </div>
 
     <!-- taskbar (minimise targets go here) -->
@@ -189,6 +200,43 @@
       </div>
     </div>
 
+    <!-- apod window -->
+    <div class="window hidden" id="apodWindow" data-title="APOD" data-icon="📸">
+      <div class="windowheader" id="apodWindowheader">
+        <div class="closebutton" id="apodWindowclose"></div>
+        <span class="headertext">Astronomy Picture Of The Day</span>
+        <div class="minimisebutton" id="apodWindowmin"></div>
+      </div>
+      <div class="window-content apod-content" id="apodContent">
+        <p class="apod-loading">loading today's picture...</p>
+      </div>
+    </div>
+
+    <!-- iss tracker window -->
+    <div class="window hidden" id="issWindow" data-title="ISS Tracker" data-icon="🛰️">
+      <div class="windowheader" id="issWindowheader">
+        <div class="closebutton" id="issWindowclose"></div>
+        <span class="headertext">ISS Tracker</span>
+        <div class="minimisebutton" id="issWindowmin"></div>
+      </div>
+      <div class="window-content iss-content" id="issContent">
+        <canvas id="issCanvas" width="500" height="260"></canvas>
+        <div class="iss-legend">
+          <div class="iss-legend-item"><span class="iss-legend-dot iss-legend-dot-red"></span> ISS</div>
+          <div class="iss-legend-item"><span class="iss-legend-dot iss-legend-dot-blue"></span> you</div>
+          <div class="iss-legend-item"><span class="iss-legend-dot iss-legend-dot-grey"></span> reference cities</div>
+        </div>
+        <div class="iss-stats">
+          <div class="iss-stat-row"><span>latitude</span><span id="issLat">--</span></div>
+          <div class="iss-stat-row"><span>longitude</span><span id="issLon">--</span></div>
+          <div class="iss-stat-row"><span>altitude (km)</span><span id="issAlt">--</span></div>
+          <div class="iss-stat-row"><span>velocity (km/h)</span><span id="issVel">--</span></div>
+          <div class="iss-stat-row"><span>distance from you (km)</span><span id="issDist">--</span></div>
+        </div>
+        <p class="iss-overhead" id="issOverhead"></p>
+      </div>
+    </div>
+
   </div>
 
   <script src="script.js"></script>
@@ -307,6 +355,41 @@
       initNgcBrowser();
     });
 
+    // apod window
+    initWindow('apodWindow');
+    document.getElementById('apodWindowclose').addEventListener('click', () => {
+      closeWindow(document.getElementById('apodWindow'));
+    });
+    document.getElementById('apodWindowmin').addEventListener('click', () => {
+      minimiseWindow(document.getElementById('apodWindow'));
+    });
+
+    // apod icon
+    document.getElementById('apodIcon').addEventListener('click', () => {
+      const w = document.getElementById('apodWindow');
+      w.classList.remove('hidden');
+      openWindow(w);
+      initApodViewer();
+    });
+
+    // iss tracker window
+    initWindow('issWindow');
+    document.getElementById('issWindowclose').addEventListener('click', () => {
+      closeWindow(document.getElementById('issWindow'));
+      stopIssTracker();
+    });
+    document.getElementById('issWindowmin').addEventListener('click', () => {
+      minimiseWindow(document.getElementById('issWindow'));
+    });
+
+    // iss icon
+    document.getElementById('issIcon').addEventListener('click', () => {
+      const w = document.getElementById('issWindow');
+      w.classList.remove('hidden');
+      openWindow(w);
+      initIssTracker();
+    });
+
     // kick off did you know pings once the desktop is up
     scheduleNotifications();
   });
@@ -319,33 +402,3 @@
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

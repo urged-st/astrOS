@@ -710,6 +710,95 @@ body {
   color: var(--text);
 }
 
+/* apod viewer */
+
+.apod-content {
+  padding: 0;
+  align-items: stretch;
+  text-align: left;
+  gap: 0;
+  flex-direction: row;
+  width: 640px;
+}
+
+.apod-loading {
+  padding: 24px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--subtext);
+  text-align: center;
+}
+
+.apod-image {
+  width: 260px;
+  height: 320px;
+  object-fit: cover;
+  display: block;
+  border-right: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.apod-video-note {
+  width: 260px;
+  padding: 24px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--subtext);
+  text-align: center;
+  border-right: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.apod-video-note a {
+  color: var(--accent);
+}
+
+.apod-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.apod-title {
+  font-size: 16px;
+  font-weight: 800;
+  padding: 16px 16px 0;
+}
+
+.apod-date {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--subtext);
+  letter-spacing: 0.08em;
+  padding: 4px 16px 0;
+}
+
+.apod-toggle {
+  margin: 12px 16px 0;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 6px 12px;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  align-self: flex-start;
+}
+
+.apod-toggle:hover {
+  border-color: var(--accent);
+}
+
+.apod-explanation {
+  padding: 12px 16px 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+  overflow-y: auto;
+}
+
 /* window resize */
 
 .resize-handle {
@@ -743,4 +832,85 @@ body {
 
 .snap-preview.show {
   opacity: 1;
+}
+
+/* iss tracker */
+
+.iss-content {
+  padding: 16px;
+  align-items: stretch;
+  gap: 12px;
+  text-align: left;
+}
+
+#issCanvas {
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  display: block;
+}
+
+.iss-stats {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.iss-stat-row {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--subtext);
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.iss-stat-row:last-child {
+  border-bottom: none;
+}
+
+.iss-stat-row span:last-child {
+  color: var(--text);
+}
+
+.iss-overhead {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+  min-height: 14px;
+}
+
+.iss-legend {
+  display: flex;
+  gap: 14px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--subtext);
+  letter-spacing: 0.05em;
+}
+
+.iss-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.iss-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.iss-legend-dot-red {
+  background: #ff5a5a;
+}
+
+.iss-legend-dot-blue {
+  background: #5ab8ff;
+}
+
+.iss-legend-dot-grey {
+  background: rgba(255,255,255,0.45);
 }
