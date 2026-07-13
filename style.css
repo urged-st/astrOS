@@ -914,3 +914,159 @@ body {
 .iss-legend-dot-grey {
   background: rgba(255,255,255,0.45);
 }
+
+/* stargazing conditions */
+
+.stargazing-content {
+  padding: 16px;
+  align-items: stretch;
+  gap: 14px;
+  text-align: left;
+  width: 260px;
+}
+
+.stargazing-loading {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--subtext);
+  text-align: center;
+  padding: 20px 0;
+}
+
+.stargazing-score {
+  text-align: center;
+}
+
+.stargazing-score-num {
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.stargazing-score-num span {
+  font-size: 16px;
+  color: var(--subtext);
+  font-weight: 400;
+}
+
+.stargazing-verdict {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--subtext);
+  letter-spacing: 0.03em;
+  margin-top: 4px;
+}
+
+.stargazing-moon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.stargazing-moon-icon {
+  font-size: 28px;
+}
+
+.stargazing-moon-name {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.stargazing-moon-illum {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--subtext);
+}
+
+.stargazing-stats {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.stargazing-stat-row {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--subtext);
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.stargazing-stat-row:last-child {
+  border-bottom: none;
+}
+
+.stargazing-stat-row span:last-child {
+  color: var(--text);
+}
+
+/* solar system */
+
+.solarsystem-content {
+  padding: 16px;
+  align-items: flex-start;
+  flex-direction: row;
+  gap: 16px;
+  text-align: left;
+}
+
+.solarsystem-side {
+  display: flex;
+  flex-direction: column;
+  gap: 100px;
+  width: 160px;
+}
+
+#solarSystemCanvas {
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  display: block;
+  flex-shrink: 0;
+}
+
+.solarsystem-hint {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--subtext);
+  letter-spacing: 0.05em;
+  text-align: left;
+}
+
+.planet-info {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  min-height: 200px;
+}
+
+.planet-info-empty {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--subtext);
+  text-align: center;
+}
+
+.planet-info-name {
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.planet-info-row {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--subtext);
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+}
+
+.planet-info-row span:last-child {
+  color: var(--text);
+}

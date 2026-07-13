@@ -70,6 +70,18 @@
         <p class="icon-label">ISS Tracker</p>
       </div>
 
+      <!-- stargazing conditions icon -->
+      <div class="icon" id="stargazingIcon">
+        <div class="icon-img">🌤️</div>
+        <p class="icon-label">Stargazing</p>
+      </div>
+
+      <!-- solar system icon -->
+      <div class="icon" id="solarSystemIcon">
+        <div class="icon-img">🪐</div>
+        <p class="icon-label">Solar System</p>
+      </div>
+
     </div>
 
     <!-- taskbar (minimise targets go here) -->
@@ -237,6 +249,34 @@
       </div>
     </div>
 
+    <!-- stargazing conditions window -->
+    <div class="window hidden" id="stargazingWindow" data-title="Stargazing Conditions" data-icon="🌤️">
+      <div class="windowheader" id="stargazingWindowheader">
+        <div class="closebutton" id="stargazingWindowclose"></div>
+        <span class="headertext">Stargazing Conditions</span>
+        <div class="minimisebutton" id="stargazingWindowmin"></div>
+      </div>
+      <div class="window-content stargazing-content" id="stargazingContent">
+        <p class="stargazing-loading">checking the sky...</p>
+      </div>
+    </div>
+
+    <!-- solar system window -->
+    <div class="window hidden" id="solarSystemWindow" data-title="Solar System" data-icon="🪐">
+      <div class="windowheader" id="solarSystemWindowheader">
+        <div class="closebutton" id="solarSystemWindowclose"></div>
+        <span class="headertext">Solar System</span>
+        <div class="minimisebutton" id="solarSystemWindowmin"></div>
+      </div>
+      <div class="window-content solarsystem-content">
+        <canvas id="solarSystemCanvas" width="440" height="440"></canvas>
+        <p class="solarsystem-hint">click a planet for details, not to scale</p>
+        <div class="planet-info" id="solarSystemInfo">
+          <p class="planet-info-empty">click a planet to see its stats</p>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <script src="script.js"></script>
@@ -388,6 +428,41 @@
       w.classList.remove('hidden');
       openWindow(w);
       initIssTracker();
+    });
+
+    // stargazing window
+    initWindow('stargazingWindow');
+    document.getElementById('stargazingWindowclose').addEventListener('click', () => {
+      closeWindow(document.getElementById('stargazingWindow'));
+    });
+    document.getElementById('stargazingWindowmin').addEventListener('click', () => {
+      minimiseWindow(document.getElementById('stargazingWindow'));
+    });
+
+    // stargazing icon
+    document.getElementById('stargazingIcon').addEventListener('click', () => {
+      const w = document.getElementById('stargazingWindow');
+      w.classList.remove('hidden');
+      openWindow(w);
+      initStargazingConditions();
+    });
+
+    // solar system window
+    initWindow('solarSystemWindow');
+    document.getElementById('solarSystemWindowclose').addEventListener('click', () => {
+      closeWindow(document.getElementById('solarSystemWindow'));
+      stopSolarSystem();
+    });
+    document.getElementById('solarSystemWindowmin').addEventListener('click', () => {
+      minimiseWindow(document.getElementById('solarSystemWindow'));
+    });
+
+    // solar system icon
+    document.getElementById('solarSystemIcon').addEventListener('click', () => {
+      const w = document.getElementById('solarSystemWindow');
+      w.classList.remove('hidden');
+      openWindow(w);
+      initSolarSystem();
     });
 
     // kick off did you know pings once the desktop is up

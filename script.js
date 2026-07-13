@@ -875,12 +875,8 @@ function initApodViewer() {
 const ISS_API = 'https://api.wheretheiss.at/v1/satellites/25544';
 const ISS_POLL_MS = 5000;
 const ISS_TRAIL_LENGTH = 20; // how many past fixes to keep for the fading trail
-const ISS_INCLINATION_DEG = 51.6; // orbital inclination, sets how far north/south the ground track swings
-const ISS_PERIOD_MIN = 92.68; // one full orbit
-const ISS_EARTH_ROT_DEG_PER_MIN = 360 / 1436.1; // earth spins under the orbit, sidereal day in minutes
 
-// a handful of well known cities, purely so the grid has recognisable anchor points,
-// not meant to be exhaustive, just enough to eyeball roughly where the ISS is
+// a few well known cities, just so the grid has something recognisable on it
 const ISS_REFERENCE_CITIES = [
   { name: 'London', lat: 51.5, lon: -0.1 },
   { name: 'New York', lat: 40.7, lon: -74.0 },
@@ -966,35 +962,6 @@ function haversineKm(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-// works out the sine-wave ground track for one full orbit centred on the current fix.
-// derives the argument of latitude (u) from the current lat, using two-line-element style
-// geometry: sin(lat) = sin(i) * sin(u). ascending vs descending picks which branch of u to use.
-function computeIssGroundTrack(lat, lon, ascending) {
-  const i = ISS_INCLINATION_DEG * Math.PI / 180;
-  const ratio = Math.max(-1, Math.min(1, Math.sin(lat * Math.PI / 180) / Math.sin(i)));
-  let u0 = Math.asin(ratio);
-  if (!ascending) u0 = Math.PI - u0; // other half of the orbit, lat decreasing as u increases
-
-  const lonNode = lon * Math.PI / 180 - Math.atan2(Math.cos(i) * Math.sin(u0), Math.cos(u0));
-
-  const points = [];
-  const stepMin = 2;
-  const halfPeriod = ISS_PERIOD_MIN / 2;
-
-  for (let t = -halfPeriod; t <= halfPeriod; t += stepMin) {
-    const u = u0 + (t / ISS_PERIOD_MIN) * 2 * Math.PI;
-    const latT = Math.asin(Math.sin(i) * Math.sin(u)) * 180 / Math.PI;
-
-    let lonT = (lonNode + Math.atan2(Math.cos(i) * Math.sin(u), Math.cos(u))) * 180 / Math.PI;
-    lonT -= ISS_EARTH_ROT_DEG_PER_MIN * t; // ground track drifts west as earth spins underneath
-    lonT = ((lonT + 180) % 360 + 360) % 360 - 180; // wrap back into -180..180
-
-    points.push({ lat: latT, lon: lonT });
-  }
-
-  return points;
-}
-
 // converts lat/lon straight to canvas xy, plain equirectangular, no fancy projection needed
 function issProject(lat, lon, w, h) {
   const x = ((lon + 180) / 360) * w;
@@ -1041,7 +1008,7 @@ function drawIssMap(pos) {
   ctx.lineTo(w / 2, h);
   ctx.stroke();
 
-  // lat/lon axis labels, small and dim, just enough to read coordinates off the grid
+  // axis labels so the grid is actually readable
   ctx.font = '9px Space Mono, monospace';
   ctx.fillStyle = 'rgba(255,255,255,0.3)';
 
@@ -1059,7 +1026,7 @@ function drawIssMap(pos) {
     ctx.fillText(`${lat}°`, 4, y);
   }
 
-  // reference cities, just anchor points so the grid actually means something at a glance
+  // reference cities so the grid isn't just abstract lines
   ISS_REFERENCE_CITIES.forEach((city) => {
     const { x, y } = issProject(city.lat, city.lon, w, h);
 
@@ -1075,7 +1042,7 @@ function drawIssMap(pos) {
     ctx.fillText(city.name, x + 5, y);
   });
 
-  // dashed line from you to the ISS, makes the relationship between the two dots obvious
+  // line from you to the ISS
   if (pos && window._userLocation) {
     const you = issProject(window._userLocation.lat, window._userLocation.lon, w, h);
     const iss = issProject(pos.lat, pos.lon, w, h);
@@ -1127,5 +1094,261 @@ function drawIssMap(pos) {
     ctx.lineTo(ux + 5, uy + 5);
     ctx.closePath();
     ctx.fill();
+  }
+}
+
+// stargazing conditions
+// pulls live weather from open-meteo (public API, no key needed) and works out
+// the current moon phase locally, then combines both into a rough seeing score
+
+const WEATHER_API = 'https://api.open-meteo.com/v1/forecast';
+
+const MOON_PHASES = [
+  { name: 'New Moon', icon: '🌑' },
+  { name: 'Waxing Crescent', icon: '🌒' },
+  { name: 'First Quarter', icon: '🌓' },
+  { name: 'Waxing Gibbous', icon: '🌔' },
+  { name: 'Full Moon', icon: '🌕' },
+  { name: 'Waning Gibbous', icon: '🌖' },
+  { name: 'Last Quarter', icon: '🌗' },
+  { name: 'Waning Crescent', icon: '🌘' },
+];
+
+let stargazingInitialised = false;
+
+// synodic month, time between new moons, maths anchored to a known reference new moon (6 jan 2000)
+function getMoonPhase() {
+  const synodicMonth = 29.53058867; // days
+  const knownNewMoon = Date.UTC(2000, 0, 6, 18, 14) / 86400000; // days since unix epoch
+  const now = Date.now() / 86400000;
+
+  const daysSince = now - knownNewMoon;
+  const phase = (((daysSince % synodicMonth) + synodicMonth) % synodicMonth) / synodicMonth; // 0 to 1
+
+  const illumination = (1 - Math.cos(phase * Math.PI * 2)) / 2; // 0 at new moon, 1 at full moon
+  const bucket = Math.round(phase * 8) % 8;
+
+  return { phase, illumination, ...MOON_PHASES[bucket] };
+}
+
+// seeing score out of 10, cloud and moon brightness both knock it down
+function getSeeingScore(cloudCover, moonIllumination) {
+  const score = 10 - (cloudCover / 12) - (moonIllumination * 3);
+  return Math.max(0, Math.min(10, score));
+}
+
+function getSeeingVerdict(score) {
+  if (score >= 7) return 'clear skies, good night for it';
+  if (score >= 4) return 'so-so, might catch some gaps in the cloud';
+  return 'not looking great tonight';
+}
+
+async function fetchStargazingConditions() {
+  const content = document.getElementById('stargazingContent');
+  const loc = window._userLocation;
+
+  if (!loc) {
+    content.innerHTML = `<p class="stargazing-loading">location unavailable, can't check conditions</p>`;
+    return;
+  }
+
+  try {
+    const url = `${WEATHER_API}?latitude=${loc.lat}&longitude=${loc.lon}&current=cloud_cover,relative_humidity_2m,wind_speed_10m`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`API returned ${res.status}`);
+    const data = await res.json();
+
+    const cloudCover = data.current.cloud_cover;
+    const humidity = data.current.relative_humidity_2m;
+    const wind = data.current.wind_speed_10m;
+
+    const moon = getMoonPhase();
+    const score = getSeeingScore(cloudCover, moon.illumination);
+    const verdict = getSeeingVerdict(score);
+
+    renderStargazingConditions({ cloudCover, humidity, wind, moon, score, verdict });
+  } catch (err) {
+    // api down or offline, just say so instead of leaving a blank window
+    console.warn('stargazing conditions fetch failed:', err);
+    content.innerHTML = `<p class="stargazing-loading">couldn't load conditions, try again later</p>`;
+  }
+}
+
+function renderStargazingConditions({ cloudCover, humidity, wind, moon, score, verdict }) {
+  const content = document.getElementById('stargazingContent');
+
+  content.innerHTML = `
+    <div class="stargazing-score">
+      <div class="stargazing-score-num">${score.toFixed(1)}<span>/10</span></div>
+      <p class="stargazing-verdict">${verdict}</p>
+    </div>
+    <div class="stargazing-moon">
+      <span class="stargazing-moon-icon">${moon.icon}</span>
+      <div>
+        <div class="stargazing-moon-name">${moon.name}</div>
+        <div class="stargazing-moon-illum">${Math.round(moon.illumination * 100)}% illuminated</div>
+      </div>
+    </div>
+    <div class="stargazing-stats">
+      <div class="stargazing-stat-row"><span>cloud cover</span><span>${cloudCover}%</span></div>
+      <div class="stargazing-stat-row"><span>humidity</span><span>${humidity}%</span></div>
+      <div class="stargazing-stat-row"><span>wind speed</span><span>${wind} km/h</span></div>
+    </div>
+  `;
+}
+
+function initStargazingConditions() {
+  if (stargazingInitialised) return;
+  stargazingInitialised = true;
+  fetchStargazingConditions();
+}
+
+// solar system
+// live planet positions from simplified J2000 keplerian elements, circular-ish
+// approximation, good enough to look right, not for actual navigation lol
+
+const PLANETS = [
+  { name: 'Mercury', a: 0.387,  e: 0.2056, period: 87.969,   L0: 252.25, peri: 77.46,  color: '#b5a89a', size: 3 },
+  { name: 'Venus',   a: 0.723,  e: 0.0068, period: 224.701,  L0: 181.98, peri: 131.53, color: '#e0c17a', size: 4 },
+  { name: 'Earth',   a: 1.000,  e: 0.0167, period: 365.256,  L0: 100.46, peri: 102.94, color: '#5ab8ff', size: 4 },
+  { name: 'Mars',    a: 1.524,  e: 0.0934, period: 686.980,  L0: 355.45, peri: 336.04, color: '#ff6a4a', size: 3 },
+  { name: 'Jupiter', a: 5.203,  e: 0.0484, period: 4332.59,  L0: 34.35,  peri: 14.75,  color: '#e0b98a', size: 7 },
+  { name: 'Saturn',  a: 9.537,  e: 0.0542, period: 10759.22, L0: 50.08,  peri: 92.43,  color: '#e8d8a8', size: 6 },
+  { name: 'Uranus',  a: 19.191, e: 0.0472, period: 30688.5,  L0: 314.20, peri: 170.96, color: '#a8e0e0', size: 5 },
+  { name: 'Neptune', a: 30.069, e: 0.0086, period: 60182,    L0: 304.22, peri: 44.97,  color: '#6a8ae0', size: 5 },
+];
+
+let solarSystemInterval = null;
+let solarSystemClickBound = false;
+let solarSystemPositions = [];
+
+// same newton-raphson kepler solve from Umbra, just reused here
+function solveKepler(M, e) {
+  let E = M;
+  for (let i = 0; i < 8; i++) {
+    E = E - (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
+  }
+  return E;
+}
+
+function getPlanetPosition(planet, daysSinceJ2000) {
+  const n = 360 / planet.period; // mean motion, deg/day
+  let M = (planet.L0 + n * daysSinceJ2000 - planet.peri) % 360;
+  if (M < 0) M += 360;
+  M = M * Math.PI / 180;
+
+  const E = solveKepler(M, planet.e);
+  const trueAnomaly = 2 * Math.atan2(
+    Math.sqrt(1 + planet.e) * Math.sin(E / 2),
+    Math.sqrt(1 - planet.e) * Math.cos(E / 2)
+  );
+
+  const r = planet.a * (1 - planet.e * Math.cos(E)); // au from sun
+  const lon = trueAnomaly + planet.peri * Math.PI / 180; // ignoring inclination, top down only
+
+  return { r, lon };
+}
+
+function drawSolarSystem() {
+  const canvas = document.getElementById('solarSystemCanvas');
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+  const cx = w / 2;
+  const cy = h / 2;
+  const scale = 40; // px per sqrt(au), keeps neptune from vanishing off the edge
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#05070d';
+  ctx.fillRect(0, 0, w, h);
+
+  const daysSinceJ2000 = (Date.now() - Date.UTC(2000, 0, 1, 12, 0, 0)) / 86400000;
+
+  // orbit rings first so planets sit on top
+  PLANETS.forEach((planet) => {
+    ctx.beginPath();
+    ctx.arc(cx, cy, scale * Math.sqrt(planet.a), 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+
+  // the sun
+  const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 14);
+  glow.addColorStop(0, 'rgba(255, 220, 120, 0.9)');
+  glow.addColorStop(1, 'rgba(255, 220, 120, 0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ffdc78';
+  ctx.beginPath();
+  ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  solarSystemPositions = []; // rebuilt every draw, used for click hit testing
+
+  PLANETS.forEach((planet) => {
+    const { r, lon } = getPlanetPosition(planet, daysSinceJ2000);
+    const pixelR = scale * Math.sqrt(r); // sqrt on the magnitude only, keeps the angle correct
+    const px = cx + pixelR * Math.cos(lon);
+    const py = cy + pixelR * Math.sin(lon);
+
+    ctx.fillStyle = planet.color;
+    ctx.beginPath();
+    ctx.arc(px, py, planet.size, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (planet.name === 'Earth') {
+      ctx.strokeStyle = 'rgba(90,184,255,0.5)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(px, py, planet.size + 4, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    solarSystemPositions.push({ name: planet.name, x: px, y: py, r, period: planet.period });
+  });
+}
+
+function renderPlanetInfo(planet) {
+  const info = document.getElementById('solarSystemInfo');
+  info.innerHTML = `
+    <div class="planet-info-name">${planet.name}</div>
+    <div class="planet-info-row"><span>distance from sun</span><span>${planet.r.toFixed(2)} AU</span></div>
+    <div class="planet-info-row"><span>orbital period</span><span>${(planet.period / 365.25).toFixed(2)} years</span></div>
+  `;
+}
+
+function initSolarSystem() {
+  if (!solarSystemInterval) {
+    drawSolarSystem();
+    solarSystemInterval = setInterval(drawSolarSystem, 60000); // positions barely move, hourly-ish is plenty
+  }
+
+  if (!solarSystemClickBound) {
+    solarSystemClickBound = true;
+    const canvas = document.getElementById('solarSystemCanvas');
+
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+
+      const hit = solarSystemPositions.find((p) => {
+        const dx = p.x - clickX;
+        const dy = p.y - clickY;
+        return Math.sqrt(dx * dx + dy * dy) < 10;
+      });
+
+      if (hit) renderPlanetInfo(hit);
+    });
+  }
+}
+
+function stopSolarSystem() {
+  if (solarSystemInterval) {
+    clearInterval(solarSystemInterval);
+    solarSystemInterval = null;
   }
 }
