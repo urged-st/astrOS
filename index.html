@@ -269,7 +269,7 @@
         <div class="minimisebutton" id="solarSystemWindowmin"></div>
       </div>
       <div class="window-content solarsystem-content">
-        <canvas id="solarSystemCanvas" width="440" height="440"></canvas>
+        <canvas id="solarSystemCanvas" width="480" height="480"></canvas>
         <p class="solarsystem-hint">click a planet for details, not to scale</p>
         <div class="planet-info" id="solarSystemInfo">
           <p class="planet-info-empty">click a planet to see its stats</p>
@@ -461,6 +461,8 @@
     document.getElementById('solarSystemIcon').addEventListener('click', () => {
       const w = document.getElementById('solarSystemWindow');
       w.classList.remove('hidden');
+      w.style.width = '850px';
+      w.style.height = '520px';
       openWindow(w);
       initSolarSystem();
     });
