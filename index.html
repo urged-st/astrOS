@@ -82,6 +82,12 @@
         <p class="icon-label">Solar System</p>
       </div>
 
+      <!-- meteor shower tracker icon -->
+      <div class="icon" id="meteorIcon">
+        <div class="icon-img">☄️</div>
+        <p class="icon-label">Meteor Showers</p>
+      </div>
+
     </div>
 
     <!-- taskbar (minimise targets go here) -->
@@ -113,7 +119,7 @@
         <h2 class="about-title">astrOS</h2>
         <p class="about-sub">by urged-st</p>
         <div class="about-links">
-          <a href="ASTROLAB_URL" target="_blank">✦ AstroLab</a>
+          <a href="https://theastrolab.vercel.app" target="_blank">✦ AstroLab</a>
           <a href="https://github.com/urged-st" target="_blank">GitHub</a>
         </div>
       </div>
@@ -270,11 +276,23 @@
       </div>
       <div class="window-content solarsystem-content">
         <canvas id="solarSystemCanvas" width="480" height="480"></canvas>
-        <p class="solarsystem-hint">click a planet for details, not to scale</p>
-        <div class="planet-info" id="solarSystemInfo">
-          <p class="planet-info-empty">click a planet to see its stats</p>
+        <div class="solarsystem-side">
+          <p class="solarsystem-hint">click a planet for details, not to scale</p>
+          <div class="planet-info" id="solarSystemInfo">
+            <p class="planet-info-empty">click a planet to see its stats</p>
+          </div>
         </div>
       </div>
+    </div>
+
+    <!-- meteor shower tracker window -->
+    <div class="window hidden" id="meteorWindow" data-title="Meteor Showers" data-icon="☄️">
+      <div class="windowheader" id="meteorWindowheader">
+        <div class="closebutton" id="meteorWindowclose"></div>
+        <span class="headertext">Meteor Showers</span>
+        <div class="minimisebutton" id="meteorWindowmin"></div>
+      </div>
+      <div class="window-content meteor-content" id="meteorContent"></div>
     </div>
 
   </div>
@@ -461,10 +479,27 @@
     document.getElementById('solarSystemIcon').addEventListener('click', () => {
       const w = document.getElementById('solarSystemWindow');
       w.classList.remove('hidden');
-      w.style.width = '850px';
+      w.style.width = '680px';
       w.style.height = '520px';
       openWindow(w);
       initSolarSystem();
+    });
+
+    // meteor shower window
+    initWindow('meteorWindow');
+    document.getElementById('meteorWindowclose').addEventListener('click', () => {
+      closeWindow(document.getElementById('meteorWindow'));
+    });
+    document.getElementById('meteorWindowmin').addEventListener('click', () => {
+      minimiseWindow(document.getElementById('meteorWindow'));
+    });
+
+    // meteor shower icon
+    document.getElementById('meteorIcon').addEventListener('click', () => {
+      const w = document.getElementById('meteorWindow');
+      w.classList.remove('hidden');
+      openWindow(w);
+      initMeteorTracker();
     });
 
     // kick off did you know pings once the desktop is up

@@ -25,6 +25,7 @@ document.addEventListener('click', () => {
 function contextAction(action) {
   contextMenu.style.display = 'none';
   if (action === 'github') window.open('https://github.com/urged-st', '_blank');
+  if (action === 'astrolab') window.open('ASTROLAB_URL', '_blank'); // TODO: swap in the real AstroLab url once it's live
   if (action === 'about') {
     const w = document.getElementById('aboutWindow');
     w.classList.remove('hidden');
@@ -436,9 +437,11 @@ function showSnapPreview(zone) {
   const vw = window.innerWidth;
   const vh = window.innerHeight - 40 - 48; // minus topbar and taskbar
   const rects = {
-    'left':  { left: 0, top: 40, width: vw / 2, height: vh },
-    'right': { left: vw / 2, top: 40, width: vw / 2, height: vh },
-    'top':   { left: 0, top: 40, width: vw, height: vh },
+    'left':      { left: 0, top: 40, width: vw / 2, height: vh },
+    'right':     { left: vw / 2, top: 40, width: vw / 2, height: vh },
+    'top':       { left: 0, top: 40, width: vw, height: vh },
+    'top-left':  { left: 0, top: 40, width: vw / 2, height: vh / 2 },
+    'top-right': { left: vw / 2, top: 40, width: vw / 2, height: vh / 2 },
   };
   const r = rects[zone] || rects['top'];
   snapPreviewEl.style.left = r.left + 'px';
@@ -461,9 +464,11 @@ function applySnap(el) {
   const vw = window.innerWidth;
   const vh = window.innerHeight - 40 - 48; // minus topbar and taskbar
   const rects = {
-    'left':  { left: 0, top: 40, width: vw / 2, height: vh },
-    'right': { left: vw / 2, top: 40, width: vw / 2, height: vh },
-    'top':   { left: 0, top: 40, width: vw, height: vh },
+    'left':      { left: 0, top: 40, width: vw / 2, height: vh },
+    'right':     { left: vw / 2, top: 40, width: vw / 2, height: vh },
+    'top':       { left: 0, top: 40, width: vw, height: vh },
+    'top-left':  { left: 0, top: 40, width: vw / 2, height: vh / 2 },
+    'top-right': { left: vw / 2, top: 40, width: vw / 2, height: vh / 2 },
   };
   const r = rects[zone];
   if (r) {
@@ -522,6 +527,21 @@ document.querySelectorAll('.wallpaper-swatch').forEach((swatch) => {
   try { saved = localStorage.getItem(WALLPAPER_KEY); } catch (e) {}
   if (saved) applyWallpaper(saved);
 })();
+
+// notepad persistence
+
+const NOTEPAD_KEY = 'astros_notepad';
+
+(function loadSavedNotepad() {
+  try {
+    const saved = localStorage.getItem(NOTEPAD_KEY);
+    if (saved) document.getElementById('notepadText').value = saved;
+  } catch (e) { /* storage unavailable, just skip loading */ }
+})();
+
+document.getElementById('notepadText').addEventListener('input', (e) => {
+  try { localStorage.setItem(NOTEPAD_KEY, e.target.value); } catch (e) { /* storage unavailable, just skip saving */ }
+});
 
 // did you know notification pings
 
@@ -1256,7 +1276,7 @@ function drawSolarSystem() {
   const h = canvas.height;
   const cx = w / 2;
   const cy = h / 2;
-  const scale = 40; // px per sqrt(au), keeps neptune from vanishing off the edge
+  const scale = 46; // px per sqrt(au), keeps neptune from vanishing off the edge
 
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = '#05070d';
@@ -1351,4 +1371,113 @@ function stopSolarSystem() {
     clearInterval(solarSystemInterval);
     solarSystemInterval = null;
   }
+}
+
+// meteor shower tracker
+// dates and ZHR are approximate but standard published figures for each shower,
+// everything else (active check, countdown) is worked out locally, no API needed
+
+const METEOR_SHOWERS = [
+  { name: 'Quadrantids', radiant: 'Boötes', zhr: 110, startMonth: 12, startDay: 28, endMonth: 1, endDay: 12, peakMonth: 1, peakDay: 3 },
+  { name: 'Lyrids', radiant: 'Lyra', zhr: 18, startMonth: 4, startDay: 16, endMonth: 4, endDay: 25, peakMonth: 4, peakDay: 22 },
+  { name: 'Eta Aquariids', radiant: 'Aquarius', zhr: 50, startMonth: 4, startDay: 19, endMonth: 5, endDay: 28, peakMonth: 5, peakDay: 5 },
+  { name: 'Southern Delta Aquariids', radiant: 'Aquarius', zhr: 25, startMonth: 7, startDay: 12, endMonth: 8, endDay: 23, peakMonth: 7, peakDay: 30 },
+  { name: 'Perseids', radiant: 'Perseus', zhr: 100, startMonth: 7, startDay: 17, endMonth: 8, endDay: 24, peakMonth: 8, peakDay: 12 },
+  { name: 'Orionids', radiant: 'Orion', zhr: 20, startMonth: 10, startDay: 2, endMonth: 11, endDay: 7, peakMonth: 10, peakDay: 21 },
+  { name: 'Southern Taurids', radiant: 'Taurus', zhr: 5, startMonth: 9, startDay: 10, endMonth: 11, endDay: 20, peakMonth: 11, peakDay: 5 },
+  { name: 'Northern Taurids', radiant: 'Taurus', zhr: 5, startMonth: 10, startDay: 20, endMonth: 12, endDay: 10, peakMonth: 11, peakDay: 12 },
+  { name: 'Leonids', radiant: 'Leo', zhr: 15, startMonth: 11, startDay: 6, endMonth: 11, endDay: 30, peakMonth: 11, peakDay: 17 },
+  { name: 'Geminids', radiant: 'Gemini', zhr: 150, startMonth: 12, startDay: 4, endMonth: 12, endDay: 17, peakMonth: 12, peakDay: 13 },
+  { name: 'Ursids', radiant: 'Ursa Minor', zhr: 10, startMonth: 12, startDay: 17, endMonth: 12, endDay: 26, peakMonth: 12, peakDay: 22 },
+];
+
+function meteorDate(year, month, day) {
+  return new Date(year, month - 1, day);
+}
+
+// handles showers that cross new year's eve (start month later in the year than end month)
+function isMeteorActive(shower, today) {
+  const year = today.getFullYear();
+  let start = meteorDate(year, shower.startMonth, shower.startDay);
+  let end = meteorDate(year, shower.endMonth, shower.endDay);
+
+  if (shower.startMonth > shower.endMonth) {
+    if (today.getMonth() + 1 >= shower.startMonth) end = meteorDate(year + 1, shower.endMonth, shower.endDay);
+    else start = meteorDate(year - 1, shower.startMonth, shower.startDay);
+  }
+
+  return today >= start && today <= end;
+}
+
+function daysBetween(a, b) {
+  const d1 = new Date(a.getFullYear(), a.getMonth(), a.getDate());
+  const d2 = new Date(b.getFullYear(), b.getMonth(), b.getDate());
+  return Math.round((d1 - d2) / 86400000);
+}
+
+// strictly forward looking, never negative, used for sorting and for inactive showers
+function nextMeteorPeak(shower, today) {
+  const year = today.getFullYear();
+  let peak = meteorDate(year, shower.peakMonth, shower.peakDay);
+  if (peak < today) peak = meteorDate(year + 1, shower.peakMonth, shower.peakDay);
+  return peak;
+}
+
+// nearest occurrence, can be in the past, only used while a shower is active so a peak
+// that already happened inside the current window reads as "peaked Xd ago", not "peak in 363d"
+function nearestMeteorPeak(shower, today) {
+  const year = today.getFullYear();
+  const candidates = [
+    meteorDate(year - 1, shower.peakMonth, shower.peakDay),
+    meteorDate(year, shower.peakMonth, shower.peakDay),
+    meteorDate(year + 1, shower.peakMonth, shower.peakDay),
+  ];
+  return candidates.reduce((best, d) => (Math.abs(d - today) < Math.abs(best - today) ? d : best));
+}
+
+function meteorLabel(shower, today, active) {
+  if (active) {
+    const days = daysBetween(nearestMeteorPeak(shower, today), today);
+    if (days === 0) return 'peaks today';
+    return days > 0 ? `peak in ${days}d` : `peaked ${Math.abs(days)}d ago`;
+  }
+
+  const days = daysBetween(nextMeteorPeak(shower, today), today);
+  return days === 0 ? 'peaks today' : `peak in ${days}d`;
+}
+
+function renderMeteorShowers() {
+  const content = document.getElementById('meteorContent');
+  const today = new Date();
+
+  const rows = METEOR_SHOWERS.map((shower) => ({
+    ...shower,
+    active: isMeteorActive(shower, today),
+    sortDays: daysBetween(nextMeteorPeak(shower, today), today), // always forward, keeps sorting sane
+    label: meteorLabel(shower, today, isMeteorActive(shower, today)),
+  }));
+
+  // active showers first, then whoever's next peak is soonest
+  rows.sort((a, b) => {
+    if (a.active !== b.active) return a.active ? -1 : 1;
+    return a.sortDays - b.sortDays;
+  });
+
+  content.innerHTML = rows.map((s) => `
+    <div class="meteor-row ${s.active ? 'meteor-row-active' : ''}">
+      <div class="meteor-row-head">
+        <span class="meteor-name">${s.name}</span>
+        ${s.active ? '<span class="meteor-badge">active now</span>' : ''}
+      </div>
+      <div class="meteor-row-stats">
+        <span>${s.radiant}</span>
+        <span>ZHR ~${s.zhr}</span>
+        <span>${s.label}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function initMeteorTracker() {
+  renderMeteorShowers(); // cheap enough to just recompute fresh every time the window opens
 }

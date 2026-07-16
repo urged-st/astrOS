@@ -1018,7 +1018,7 @@ body {
 .solarsystem-side {
   display: flex;
   flex-direction: column;
-  gap: 100px;
+  gap: 10px;
   width: 160px;
 }
 
@@ -1069,4 +1069,57 @@ body {
 
 .planet-info-row span:last-child {
   color: var(--text);
+}
+
+/* meteor shower tracker */
+
+.meteor-content {
+  padding: 16px;
+  align-items: stretch;
+  gap: 8px;
+  text-align: left;
+  width: 300px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.meteor-row {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.meteor-row-active {
+  border-color: var(--accent);
+  background: rgba(123, 140, 255, 0.08);
+}
+
+.meteor-row-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.meteor-name {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.meteor-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.meteor-row-stats {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--subtext);
 }
